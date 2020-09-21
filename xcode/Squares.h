@@ -44,6 +44,9 @@ public:
                int y1 = j * squareHeight;
                int y2 = y1 + squareHeight;
                Rectf curSquare = Rectf(x1, y1, x2, y2);
+               
+               /* modify code to count features rather than white pixels
+                *
                int sum = 0;
                //counting white pixels
                for(int x = x1 ; x < x2 ; x++){
@@ -55,6 +58,8 @@ public:
                //coloring white pixels
                gl::color(sum/(float)(n*n*255), 0, 1, 1);
                gl::drawSolidRect(curSquare);
+                *
+                */
            }
         }
    }
