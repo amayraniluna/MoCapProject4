@@ -70,7 +70,7 @@ protected:
     cv::Mat                    mPrevFrame; //the last frame
     ci::SurfaceRef             mSurface; //the current frame of visual data in CInder format.
     vector<uint8_t>            mFeatureStatuses; //a map of previous features to current features
-    squares mSquare;
+    squares mSquare();
     
     void findOpticalFlow(); //finds the optical flow -- the visual or apparent motion of features (or persons or things or what you can detect/measure) through video
 
