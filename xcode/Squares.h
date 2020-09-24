@@ -17,17 +17,17 @@ using namespace cinder;
 
 class squares{
     protected:
-    int N;
+    int N =10;
     virtual float count(ci::Rectf)=0;
     virtual float getDivisorOfSum()=0;
     void setN(int n){N=n;}
 
-
+    
     virtual void drawRect(cv::Mat image)
     {
         int squareWidth = image.cols / N;
         int squareHeight = image.rows / N;
-        ci::Rectf curSquare;
+        //ci::Rectf curSquare;
         
         //creating squares
         for(int i = 0 ; i < N ; i++){
@@ -42,6 +42,8 @@ class squares{
                 //divide sum by the appropriate numbers
                 //use the result from above to change color
                 gl::color(sum/getDivisorOfSum(), 0 ,1 , 1);
+                std::cout << "Divisor of sum: " << getDivisorOfSum() << std::endl;
+                std::cout << "sum: " << sum << std::endl;
                 //draw squares
                 gl::drawSolidRect(curSquare);
             }
@@ -60,13 +62,15 @@ public:
     {
         frameDiff = b;
         squares::drawRect(b);
-        
     }
+    
     virtual float count(ci::Rectf curSquare)
     {
         //counting white pixels
-        for(int x = curSquare.x1 ; x < curSquare.x2 ; x++){
-            for(int y = curSquare.y1 ; y < curSquare.y2 ; y++){
+        for(int x = curSquare.x1 ; x < curSquare.x2 ; x++)
+        {
+            for(int y = curSquare.y1 ; y < curSquare.y2 ; y++)
+            {
                 int pixel = frameDiff.at<uint8_t>(y,x);
                 sum+=pixel;
             }
@@ -79,30 +83,31 @@ public:
         float div = N*N*255;
         return div;
     }
-    
-
 };
+
 
 class SquaresFeatures : public squares
 {
     private:
     std::vector<cv::Point2f> features;
+    float featuresSize;
     
   public:
-    virtual void drawRect(std::vector<cv::Point2f> pts)
+    virtual void drawRect(std::vector<cv::Point2f> pts, cv::Mat image)
     {
         features = pts;
-    //get features size in class variable
-        squares::drawRect();
-        
+        featuresSize = features.size();
+     
+        squares::drawRect(image);
     }
 
     virtual float count(ci::Rectf curSquare)
     {
         float sum = 0.0;
-        //return the sum of the features points
-        for(int i = 0 ; i < features.size(); i++){
-            if(curSquare.contains(fromOcv(features[i]))){
+        for(int i = 0 ; i < features.size(); i++)
+        {
+            if(curSquare.contains(fromOcv(features[i])))
+            {
                 sum++;
             }
         }
@@ -111,7 +116,12 @@ class SquaresFeatures : public squares
     
     float getDivisorOfSum()
     {
-        return 1; //return features size class variable
+        return featuresSize/10;
+    }
+    
+    void setN(int num)
+    {
+        squares::setN(num);
     }
     
 };
