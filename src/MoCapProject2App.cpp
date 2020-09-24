@@ -43,6 +43,9 @@
 #include "cinder/Capture.h" //add - needed for capture
 #include "cinder/Log.h" //add - needed to log errors
 
+#include "Osc.h" //add to send OSC
+#include <math.h>
+
 #include "Squares.h"
 
 #define SAMPLE_WINDOW_MOD 300 //how often we find new features -- that is 1/300 frames we will find some features
@@ -70,11 +73,17 @@ protected:
     cv::Mat                    mPrevFrame; //the last frame
     ci::SurfaceRef             mSurface; //the current frame of visual data in CInder format.
     vector<uint8_t>            mFeatureStatuses; //a map of previous features to current features
-    SquaresFeatures mSquare;
-    bool mDoBackgroundSubtraction;
+    SquaresFeatures            mSfSquare;
+    bool                       mDoBackgroundSubtraction;
+    bool                       mDoFrameDifferencing = false;
+    
+    //for frame differencing
+    SquaresFrameDiff           mFdSquare;
+    cv::Mat                    mFrameDifference;
+    
     
     void findOpticalFlow(); //finds the optical flow -- the visual or apparent motion of features (or persons or things or what you can detect/measure) through video
-
+    void frameDifference(cv::Mat &outputImg);
 };
 
 
@@ -92,6 +101,7 @@ void FeatureTrackingApp::setup()
     }
     
     mPrevFrame.data = NULL; //initialize our previous frame to null since in the beginning... there no previous frames!
+    mFrameDifference.data = NULL;
 }
 
 //maybe you will add mouse functionality!
@@ -115,7 +125,8 @@ void FeatureTrackingApp::update()
     
     //just what it says -- the meat of the program
     findOpticalFlow();
-
+    //do the frame-differencing
+    frameDifference(mFrameDifference);
 }
 
 void FeatureTrackingApp::findOpticalFlow()
@@ -125,7 +136,7 @@ void FeatureTrackingApp::findOpticalFlow()
     //convert gl::Texturer to the cv::Mat(rix) --> Channel() -- converts, makes sure it is 8-bit
     cv::Mat curFrame = toOcv(Channel(*mSurface));
     
-    //put backgorund subtraction here , have a boolean flag that changes
+    //put background subtraction here , have a boolean flag that changes
     
     //if we have a previous sample, then we can actually find the optical flow.
     if( mPrevFrame.data ) {
@@ -167,6 +178,48 @@ void FeatureTrackingApp::findOpticalFlow()
     
 }
 
+//find the difference between 2 frames + some useful image processing
+void FeatureTrackingApp:: frameDifference(cv::Mat &outputImg)
+{
+    outputImg.data = NULL;
+    if(!mSurface) return;
+
+    //the current surface or frame in cv::Mat format
+    cv::Mat curFrame = toOcv(Channel(*mSurface));
+    
+    if(mPrevFrame.data){
+        //blur --> this means that it will be resilient to a little movement
+        //params are: cv::Mat Input1,
+        //cv::Mat Result,
+        //cv::Size - size of blur kernel (correlates to how blurred - must                      be positive & odd integers),
+        // the bigger the size, the more the blur & also the larger the sigmas the more the blur.
+        // double size of sigma X Gaussian kernel standard deviation in X direction
+        // double size of sigma Y Gaussian kernel standard deviation in Y direction (optional, not used)
+        //More on Gaussian blurs here: https://homepages.inf.ed.ac.uk/rbf/HIPR2/gsmooth.htm
+        //Interestingly, we can think of them as a low-pass filter in 2D -- (if you know them from audio dsp, sound)
+        cv::GaussianBlur(curFrame, curFrame, cv::Size(3,3), 0);
+
+        
+        //find the difference
+        //params are: cv::Mat Input1, cv::Mat Input2, cv::Mat Result
+        cv::absdiff(curFrame, mPrevFrame, outputImg);
+        
+        
+        //take threshhold values -- think of this as image segmentation, see notes above in desc. header
+        //we will go further into image segmentation next week
+        //        https://docs.opencv.org/2.4/modules/imgproc/doc/miscellaneous_transformations.html?highlight=threshold#threshold
+        //Parameters:
+        //  src – input array (single-channel, 8-bit or 32-bit floating point).
+        //  dst – output array of the same size and type as src.
+        //  thresh – threshold value.
+        //  maxval – maximum value to use with the THRESH_BINARY and THRESH_BINARY_INV thresholding types.
+        //  type – thresholding type (see the details below).
+        cv::threshold(outputImg, outputImg, 25, 255, cv::THRESH_BINARY);
+    }
+    
+    mPrevFrame = curFrame;
+}
+
 
 void FeatureTrackingApp::draw()
 {
@@ -204,9 +257,13 @@ void FeatureTrackingApp::draw()
         }
     }
     gl::end();
-    if(mPrevFrame.data){
-        mSquare.drawRect(mFeatures, mPrevFrame);
-    }
+    
+      if(mDoFrameDifferencing && mFrameDifference.data){
+          mFdSquare.drawRect(mFrameDifference);
+      }
+       else if(mPrevFrame.data){
+            mSfSquare.drawRect(mPrevFeatures, mPrevFrame);
+       }
 }
 
 //runs commands from pressing a certain key
@@ -214,13 +271,16 @@ void FeatureTrackingApp::keyDown( KeyEvent event )
 {
     //changing the number of squares on the screen
     if(event.getChar() == '1'){
-        mSquare.setN(10);
+        mSfSquare.setN(10);
     }
     else if(event.getChar() == '2'){
-        mSquare.setN(20);
+        mSfSquare.setN(20);
     }
     else if(event.getChar() == '3'){
-        mSquare.setN(30);
+        mSfSquare.setN(30);
+    }
+    else if(event.getChar() == 'f'){
+        mDoFrameDifferencing = !mDoFrameDifferencing;
     }
 }
 

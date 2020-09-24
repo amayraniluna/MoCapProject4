@@ -83,6 +83,11 @@ public:
         float div = N*N*255;
         return div;
     }
+    
+    void setN(int num)
+    {
+        squares::setN(num);
+    }
 };
 
 
