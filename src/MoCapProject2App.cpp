@@ -1,15 +1,12 @@
-
 /*
  *
  Programmer: Amayrani Luna
  Date: 9/19/20
  Notes: Modified from Cinder OpenCV sample on optical flow
  Purpose/Description:
- 
  This program draws the optical flow of live video using feature detection.
  
  Uses:
- 
  cv::goodFeaturesToTrack - in this case, the features that are "good to track" are simply corners/edges.
  
  cv::calcOpticalFlowPyrLK - creates the mFeatureStatuses array which is a map from current features (mFeatures) into the previous features (mPreviousFeatures).
@@ -18,24 +15,18 @@
  Previous Features are 50% transparent red (drawn first)
  Current Features are 50% transparent blue
  The optical flow or path from previous to current is drawn in green.
- 
- Instructions:
- Copy and paste this code into your cpp file.
- Add the NSCameraUsageDescription key to your Info.plist file in order to get permission to use the camera.
- You will have to add a description of what you are using the camera for. This will show up in the permissions pop-up.
- 
- Run. Observe the results.
- 
- What do think optical flow is measuring? If you haven't read the OpenCV tutorial on Optical flow, here it is:
- https://docs.opencv.org/3.4/d4/dee/tutorial_optical_flow.html
  *
  */
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/video/tracking.hpp>
-
+#include "opencv2/imgproc.hpp"
+#include "opencv2/videoio.hpp"
+#include <opencv2/video.hpp>
 #include "CinderOpenCV.h"
+#include <opencv2/highgui.hpp>
+#include <opencv2/video/background_segm.hpp>
 
 #include "cinder/app/App.h"
 #include "cinder/app/RendererGl.h"
@@ -73,14 +64,15 @@ protected:
     cv::Mat                    mPrevFrame; //the last frame
     ci::SurfaceRef             mSurface; //the current frame of visual data in CInder format.
     vector<uint8_t>            mFeatureStatuses; //a map of previous features to current features
-    SquaresFeatures            mSfSquare;
-    bool                       mDoBackgroundSubtraction;
-    bool                       mDoFrameDifferencing = false;
+    SquaresFeatures            mFTrackingSquare;
+    bool                       mDoBackgroundSubtraction = false;
+    bool                       mFrameDiffOrOpFlow = false;
+    cv::Ptr<cv::BackgroundSubtractor> mBackgroundSubtract;
+    cv::Mat test;
     
     //for frame differencing
-    SquaresFrameDiff           mFdSquare;
+    SquaresFrameDiff           mFDiffSquare;
     cv::Mat                    mFrameDifference;
-    
     
     void findOpticalFlow(); //finds the optical flow -- the visual or apparent motion of features (or persons or things or what you can detect/measure) through video
     void frameDifference(cv::Mat &outputImg);
@@ -102,12 +94,17 @@ void FeatureTrackingApp::setup()
     
     mPrevFrame.data = NULL; //initialize our previous frame to null since in the beginning... there no previous frames!
     mFrameDifference.data = NULL;
+    
+    //create the background subtractor (it can be any type -- using KNN just for the example)
+     mBackgroundSubtract = cv::createBackgroundSubtractorKNN();
 }
+
 
 //maybe you will add mouse functionality!
 void FeatureTrackingApp::mouseDown( MouseEvent event )
 {
 }
+
 
 void FeatureTrackingApp::update()
 {
@@ -123,10 +120,10 @@ void FeatureTrackingApp::update()
             mTexture->update(*mSurface);
     }
     
-    //just what it says -- the meat of the program
-    findOpticalFlow();
-    //do the frame-differencing
-    frameDifference(mFrameDifference);
+    if(!mFrameDiffOrOpFlow)
+        findOpticalFlow();//just what it says -- the meat of the program
+    
+        else frameDifference(mFrameDifference);//do the frame-differencing
 }
 
 void FeatureTrackingApp::findOpticalFlow()
@@ -136,18 +133,21 @@ void FeatureTrackingApp::findOpticalFlow()
     //convert gl::Texturer to the cv::Mat(rix) --> Channel() -- converts, makes sure it is 8-bit
     cv::Mat curFrame = toOcv(Channel(*mSurface));
     
-    //put background subtraction here , have a boolean flag that changes
-    
-    //if we have a previous sample, then we can actually find the optical flow.
-    if( mPrevFrame.data ) {
+    //the method will put the results (eg. the foreground mask) into the output frame
+    cv::Mat outputFrame;
+    if(mDoBackgroundSubtraction){
+        mBackgroundSubtract->apply(curFrame, outputFrame);
+    }
+    else outputFrame = curFrame;
         
+    //if we have a previous sample, then we can actually find the optical flow.
+    if( mPrevFrame.data ){
         // pick new features once every SAMPLE_WINDOW_MOD frames, or the first frame
         
         //note: this means we are abandoning all our previous features every SAMPLE_WINDOW_MOD frames that we
         //had updated and kept track of via our optical flow operations.
         
         if( mFeatures.empty() || getElapsedFrames() % SAMPLE_WINDOW_MOD == 0 ){
-            
             /*
              parameters for the  call to cv::goodFeaturesToTrack:
              curFrame - img,
@@ -160,7 +160,7 @@ void FeatureTrackingApp::findOpticalFlow()
              
              note: remember we're finding corners/edges using these functions
              */
-            cv::goodFeaturesToTrack( curFrame, mFeatures, MAX_FEATURES, 0.005, 3.0 );
+            cv::goodFeaturesToTrack( outputFrame, mFeatures, MAX_FEATURES, 0.005, 3.0 );
         }
         
         vector<float> errors; //there could be errors whilst calculating optical flow
@@ -169,13 +169,11 @@ void FeatureTrackingApp::findOpticalFlow()
         
         //This operation will now update our mFeatures & mPrevFeatures based on calculated optical flow patterns between frames UNTIL we choose all new features again in the above operation every SAMPLE_WINDOW_MOD frames. We choose all new features every couple frames, because we lose features as they move in and out frames and become occluded, etc.
         if( ! mFeatures.empty() )
-            cv::calcOpticalFlowPyrLK( mPrevFrame, curFrame, mPrevFeatures, mFeatures, mFeatureStatuses, errors );
-        
+            cv::calcOpticalFlowPyrLK( mPrevFrame, outputFrame, mPrevFeatures, mFeatures, mFeatureStatuses, errors );
     }
     
     //set previous frame
-    mPrevFrame = curFrame;
-    
+    mPrevFrame = outputFrame;
 }
 
 //find the difference between 2 frames + some useful image processing
@@ -191,7 +189,7 @@ void FeatureTrackingApp:: frameDifference(cv::Mat &outputImg)
         //blur --> this means that it will be resilient to a little movement
         //params are: cv::Mat Input1,
         //cv::Mat Result,
-        //cv::Size - size of blur kernel (correlates to how blurred - must                      be positive & odd integers),
+        //cv::Size - size of blur kernel (correlates to how blurred - must be positive & odd integers),
         // the bigger the size, the more the blur & also the larger the sigmas the more the blur.
         // double size of sigma X Gaussian kernel standard deviation in X direction
         // double size of sigma Y Gaussian kernel standard deviation in Y direction (optional, not used)
@@ -216,7 +214,7 @@ void FeatureTrackingApp:: frameDifference(cv::Mat &outputImg)
         //  type – thresholding type (see the details below).
         cv::threshold(outputImg, outputImg, 25, 255, cv::THRESH_BINARY);
     }
-    
+
     mPrevFrame = curFrame;
 }
 
@@ -226,9 +224,8 @@ void FeatureTrackingApp::draw()
     gl::clear( Color( 0, 0, 0 ) );
     
     //color the camera frame normally
-    gl::color( 1, 1, 1, 0.55 );
+    gl::color( 1, 1, 1, 1 );
 
-    
     //draw the camera frame
     if( mTexture )
     {
@@ -239,7 +236,6 @@ void FeatureTrackingApp::draw()
     gl::color( 1, 0, 0, 0.55 );
     for( int i=0; i<mPrevFeatures.size(); i++ )
         gl::drawStrokedCircle( fromOcv( mPrevFeatures[i] ), 3 );
-
     
     // draw all the new points @ 0.5 alpha (transparency)
     gl::color( 0, 0, 1, 0.5f );
@@ -256,13 +252,20 @@ void FeatureTrackingApp::draw()
             gl::vertex( fromOcv( mPrevFeatures[idx] ) );
         }
     }
-    gl::end();
     
-      if(mDoFrameDifferencing && mFrameDifference.data){
-          mFdSquare.drawRect(mFrameDifference);
+    gl::end();
+     //drawing output for Frame Differencing
+      if(mFrameDiffOrOpFlow && mFrameDifference.data)
+      {
+          gl::draw( gl::Texture::create(fromOcv(mFrameDifference) ) );
+          mFDiffSquare.drawRect(mFrameDifference);
       }
-       else if(mPrevFrame.data){
-            mSfSquare.drawRect(mPrevFeatures, mPrevFrame);
+        //drawing output for Optical Flow
+        else if((!mFrameDiffOrOpFlow) && mPrevFrame.data)
+       {
+           mFTrackingSquare.drawRect(mPrevFeatures, mPrevFrame);
+           gl::color( 1, 1, 1, 0.5f);
+           gl::draw( gl::Texture::create(fromOcv(mPrevFrame) ) );
        }
 }
 
@@ -271,16 +274,27 @@ void FeatureTrackingApp::keyDown( KeyEvent event )
 {
     //changing the number of squares on the screen
     if(event.getChar() == '1'){
-        mSfSquare.setN(10);
+        if(mFrameDiffOrOpFlow)
+           mFDiffSquare.setN(10);
+        else mFTrackingSquare.setN(10);
     }
     else if(event.getChar() == '2'){
-        mSfSquare.setN(20);
+        if(mFrameDiffOrOpFlow)
+            mFDiffSquare.setN(20);
+        else mFTrackingSquare.setN(20);
     }
     else if(event.getChar() == '3'){
-        mSfSquare.setN(30);
+        if(mFrameDiffOrOpFlow)
+            mFDiffSquare.setN(30);
+        else mFTrackingSquare.setN(30);
     }
+    //switching between Frame Differencing and Optical Flow
     else if(event.getChar() == 'f'){
-        mDoFrameDifferencing = !mDoFrameDifferencing;
+        mFrameDiffOrOpFlow = !mFrameDiffOrOpFlow;
+    }
+    //adding and removing background subtraction
+    else if(event.getChar() == ' '){
+        mDoBackgroundSubtraction = !mDoBackgroundSubtraction;
     }
 }
 

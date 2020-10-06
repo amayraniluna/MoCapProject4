@@ -17,12 +17,17 @@ using namespace cinder;
 
 class squares{
     protected:
-    int N =10;
-    virtual float count(ci::Rectf)=0;
+    int N;
+    virtual int count(ci::Rectf)=0;
     virtual float getDivisorOfSum()=0;
     void setN(int n){N=n;}
 
+    //constructor
+    squares(){
+        N=10;
+    }
     
+    //draws the squares given "Mat image" to get the size of the screen
     virtual void drawRect(cv::Mat image)
     {
         int squareWidth = image.cols / N;
@@ -30,20 +35,20 @@ class squares{
         //ci::Rectf curSquare;
         
         //creating squares
-        for(int i = 0 ; i < N ; i++){
-            for(int j = 0 ; j < N ; j++){
+        for(int i = 0 ; i < N ; i++)
+        {
+            for(int j = 0 ; j < N ; j++)
+            {
                 int x1 = i * squareWidth;
                 int x2 = x1 + squareWidth;
                 int y1 = j * squareHeight;
                 int y2 = y1 + squareHeight;
                 Rectf curSquare = Rectf(x1, y1, x2, y2);
 
-                float sum = count(curSquare);
+                int sum = count(curSquare);
                 //divide sum by the appropriate numbers
                 //use the result from above to change color
-                gl::color(sum/getDivisorOfSum(), 0 ,1 , 1);
-                std::cout << "Divisor of sum: " << getDivisorOfSum() << std::endl;
-                std::cout << "sum: " << sum << std::endl;
+                gl::color(sum/(getDivisorOfSum()), 0 ,1 , 1);
                 //draw squares
                 gl::drawSolidRect(curSquare);
             }
@@ -51,39 +56,44 @@ class squares{
     }
 };
 
-
+//PROJ 1 FRAME DIFFERENCING
 class SquaresFrameDiff : public squares
 {
 private:
     cv::Mat frameDiff;
-    float sum = 0.0;
+    
 public:
+    //passes Mat b to super class draw function
     virtual void drawRect(cv::Mat b)
     {
         frameDiff = b;
-        squares::drawRect(b);
+        squares::drawRect(frameDiff);
     }
     
-    virtual float count(ci::Rectf curSquare)
+    //returns the number of white pixels per "curSquare"
+    virtual int count(ci::Rectf curSquare)
     {
+        int tempSum = 0;
         //counting white pixels
         for(int x = curSquare.x1 ; x < curSquare.x2 ; x++)
         {
             for(int y = curSquare.y1 ; y < curSquare.y2 ; y++)
             {
                 int pixel = frameDiff.at<uint8_t>(y,x);
-                sum+=pixel;
+                tempSum+=pixel;
             }
         }
-        return sum;
+        std::cout << "sum: " << tempSum << std::endl;
+        return tempSum;
     }
+    
     
     float getDivisorOfSum()
     {
-        float div = N*N*255;
-        return div;
+        return (float)(N*N*255);
     }
     
+    //sets number of squares on screen
     void setN(int num)
     {
         squares::setN(num);
@@ -91,6 +101,7 @@ public:
 };
 
 
+//PROJ 2 FEATURE TRACKING
 class SquaresFeatures : public squares
 {
     private:
@@ -98,6 +109,7 @@ class SquaresFeatures : public squares
     float featuresSize;
     
   public:
+    //passes Mat image to super class draw function
     virtual void drawRect(std::vector<cv::Point2f> pts, cv::Mat image)
     {
         features = pts;
@@ -106,24 +118,26 @@ class SquaresFeatures : public squares
         squares::drawRect(image);
     }
 
-    virtual float count(ci::Rectf curSquare)
+    //returns number of features per "curSquare"
+    virtual int count(ci::Rectf curSquare)
     {
-        float sum = 0.0;
+        int tempSum = 0;
         for(int i = 0 ; i < features.size(); i++)
         {
             if(curSquare.contains(fromOcv(features[i])))
             {
-                sum++;
+                tempSum++;
             }
         }
-        return sum;
+        return tempSum;
     }
     
     float getDivisorOfSum()
     {
-        return featuresSize/10;
+        return (float)(featuresSize/10);
     }
     
+    //sets number of squares on screen
     void setN(int num)
     {
         squares::setN(num);
