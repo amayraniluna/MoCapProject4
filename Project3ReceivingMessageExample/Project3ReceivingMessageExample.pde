@@ -1,4 +1,4 @@
-//Programmer: Courtney Brown
+//Programmer: Amayrani Luna
 //Desc: Demonstrates receiving OSC with no clutter of the fancy example.
 //Prints values receives from another program. 
 
