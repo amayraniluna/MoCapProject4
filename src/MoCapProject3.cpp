@@ -5,21 +5,13 @@
  Notes: Demonstration of sending OSC processing and creating artistic application using our previous code
  Purpose/Description:
  
- This program sends values from the mouse to another program.
+ This program sends frame differencing values (such as the (x,y) values of a square where movement is occuring and the max number of pixels in a square) to another program.
  
  Uses:
  
  osc::Sender -- sends OSC messages from one program to another (incl. those running on another computer)
  
  Note: still does frame-differencing.
- 
- TODO: (for you, student!)
- ++add your squares class
- ++find values to send from your squares class
-    ++either use frame-differencing or optical flow to send data (choose one)
-    ++must use a feature (eg. find max or min of each square + the location + send) to make an art or sound thing happen.
-    ++note that this example uses the mouse locations but you must sub. your mocap squares info.
- 
  */
 
 
@@ -72,9 +64,6 @@ class MakeItArtApp : public App {
     void update() override;
     void draw() override;
     
-    ci::vec2 curMousePosLastDown;
-    bool isMouseDown;
-
 
   protected:
     CaptureRef                 mCapture;
@@ -107,8 +96,7 @@ MakeItArtApp::MakeItArtApp() : mSender(LOCALPORT, DESTHOST, DESTPORT) //initiali
 //sets the mouse drag values
 void MakeItArtApp::mouseDrag( MouseEvent event)
 {
-    curMousePosLastDown = event.getPos();
-    isMouseDown = true;
+    //add functionality later
 }
 
 
@@ -116,9 +104,7 @@ void MakeItArtApp::mouseDrag( MouseEvent event)
 //sets the mouse down values
 void MakeItArtApp::mouseDown( MouseEvent event)
 {
-    curMousePosLastDown = event.getPos();
-    isMouseDown = true;
-
+     //add functionality later
 }
 
 
@@ -126,12 +112,12 @@ void MakeItArtApp::mouseDown( MouseEvent event)
 //sets the mouse up values
 void MakeItArtApp::mouseUp( MouseEvent event)
 {
-    isMouseDown = false;
+     //add functionality later
 }
 
 
 
-//change param: instead of sending (x,y) value of mouse, maybe send coordinates on our grid that's measuring motion capture? //addr = OSC address
+//addr = OSC address, x&y = coordinate values from Squares class
 void MakeItArtApp::sendOSC(std::string addr, float x, float y) //sending the OSC values
 {
     osc::Message msg;
@@ -145,7 +131,7 @@ void MakeItArtApp::sendOSC(std::string addr, float x, float y) //sending the OSC
 
 
 
-
+//addr = OSC address, maxSum = max value of pixels from Squares class
 void MakeItArtApp::sendOSC(std::string addr, float maxSum) //sending the OSC values
 {
     osc::Message msg;
@@ -277,11 +263,11 @@ void MakeItArtApp::draw()
     gl::clear( Color( 0, 0, 0 ) );
 
     gl::color( 1, 1, 1, 1 );
-//
-//    if( mTexture )
-//    {
-//        gl::draw( mTexture );
-//    }
+
+    if( mTexture )
+    {
+        gl::draw( mTexture );
+    }
     
     //if the frame difference isn't null, draw it.
     if( mFrameDifference.data )
