@@ -1,6 +1,4 @@
-/*
- *
-   Programmer: Amayrani Luna
+/* Programmer: Amayrani Luna
    date: 9/7/20
    Squares.h
    MoCapProject1
@@ -8,8 +6,7 @@
     This class holds the variable n and, uses this variable to divided the screen into n*n
     squares, determines where the white pixels are(indicating movement) in each square, and
     colors those pixels.
- *
- */
+*/
 
 #ifndef Squares_h
 #define Squares_h
@@ -18,10 +15,19 @@ using namespace cinder;
 class squares{
     protected:
     int N;
+    int maxX;
+    int maxY;
+    int highestSum;
+    
     virtual int count(ci::Rectf)=0;
     virtual float getDivisorOfSum()=0;
+    
+    public:
     void setN(int n){N=n;}
-
+    int getMaxX(){return maxX;}
+    int getMaxY(){return maxY;}
+    int getHighestSum(){return highestSum;}
+    
     //constructor
     squares(){
         N=10;
@@ -32,8 +38,8 @@ class squares{
     {
         int squareWidth = image.cols / N;
         int squareHeight = image.rows / N;
-        //ci::Rectf curSquare;
         
+        highestSum = 0;
         //creating squares
         for(int i = 0 ; i < N ; i++)
         {
@@ -46,15 +52,21 @@ class squares{
                 Rectf curSquare = Rectf(x1, y1, x2, y2);
 
                 int sum = count(curSquare);
+                if(sum > highestSum){
+                    highestSum = sum;
+                    maxX = x1;
+                    maxY = y1;
+                }
                 //divide sum by the appropriate numbers
                 //use the result from above to change color
-                gl::color(sum/(getDivisorOfSum()), 0 ,1 , 1);
+                gl::color(sum/(getDivisorOfSum()), 1 ,1 , .5);
                 //draw squares
                 gl::drawSolidRect(curSquare);
             }
         }
     }
 };
+
 
 //PROJ 1 FRAME DIFFERENCING
 class SquaresFrameDiff : public squares
@@ -83,6 +95,7 @@ public:
                 tempSum+=pixel;
             }
         }
+        
         std::cout << "sum: " << tempSum << std::endl;
         return tempSum;
     }
