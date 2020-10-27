@@ -13,6 +13,7 @@ class Blob
   ArrayList<Float> allY = new ArrayList(); //the history of the y value, incl. current
   float blobsID = 0; //the id from C++ -- you don't really need this here bc its in a list in the main, BUT good to have for debugging just in case!!
   int blobsAlive = 0; //when was it last updated?
+  float velocity = 0;
   
   //create with this info.
   Blob(float id, float x, float y)
@@ -83,8 +84,25 @@ class Blob
   }
   
 
+  void calculateVelocity(){
+    if(allX.size() > 1){
+      int lastIndex = allX.size() - 1;
+      float velocityX = allX.get(lastIndex) - allX.get(lastIndex - 1);//currentX - previousX
+      float velocityY = allY.get(lastIndex) - allY.get(lastIndex - 1); //currentY - previousY
+    
+      if(velocityX == 0) //make sure not to divide by 0
+       velocity = 0;
+     
+      else velocity = abs(velocityY / velocityX);
+    }
+      println("velocity: " + velocity);
+  }
   
 
+  float getVelocity(){
+    calculateVelocity();
+    return velocity;
+  }
 
 
 }

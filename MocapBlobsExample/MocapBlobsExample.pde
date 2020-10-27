@@ -142,6 +142,7 @@ void drawBlobs()
   for(int i=0; i<blobsID.size(); i++)
   {
     blobs.get(i).draw(); 
+    blobs.get(i).calculateVelocity();
   }
 }
 
