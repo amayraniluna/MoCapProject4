@@ -1,9 +1,7 @@
-
-
-//Programmer: Courtney Brown
+//Programmer: Amayrani Luna
 //Desc: Demonstrates receiving blob features
 //Desc: Receives OSC and uses value to play a musical instrument & draw a blob.
-//Date: Oct. 2020
+//Date: 10/29/30
 
 //Go to the top menu Sketch->Import Library
 //then search for oscP5 and import that
@@ -52,6 +50,8 @@ int newBlobs = 0; //how many new blobs this frame?
 
 int WHEN_A_BLOB_IS_DEAD = -100; 
 
+
+
 //age all the blobs (note that a frame has gone by -- one frame older and closer to death!)
 void ageBlobs()
 {
@@ -60,6 +60,8 @@ void ageBlobs()
       blobs.get(i).age(); 
     }
 }
+
+
 
 //if a blob is too old -- that is, it's been around awhile w/o updating -- BAH-lete
 void killBlobs()
@@ -75,6 +77,8 @@ void killBlobs()
       }
     }
 }
+
+
 
 //sets up OSC & the sound library Minim
 void setup()
@@ -92,6 +96,8 @@ void setup()
   // use the getLineOut method of the Minim object to get an AudioOutput object
   out = minim.getLineOut();
 }
+
+
 
 //this is the overloaded function to receive our OSC message 
 void oscEvent(OscMessage msg)
@@ -120,6 +126,8 @@ void oscEvent(OscMessage msg)
     
 }
 
+
+
 //add to blobs or update existing blobs if they are found
 void addToBlobs(float id, float x, float y)
 {
@@ -137,6 +145,8 @@ void addToBlobs(float id, float x, float y)
   }
 }
 
+
+
 void drawBlobs()
 {
   for(int i=0; i<blobsID.size(); i++)
@@ -145,6 +155,8 @@ void drawBlobs()
     blobs.get(i).calculateVelocity();
   }
 }
+
+
 
 //this will just play a note for every blob that is found.
 void playBlobs(float timeBetween)
@@ -161,11 +173,20 @@ void playBlobs(float timeBetween)
 }
 
 
+
+
 //this runs once per every frame. it draws blobs and plays notes if there are new blobs
 //also deletes old blobs that haven't been updated in a while (killBlobs)
 void draw()
 {
-  background(255); 
+  //if the velocity is less than 1, the background turns black or else it's white
+  background(0); 
+  for(int i = 0 ; i < blobs.size() ; i++)
+  {
+    if(blobs.get(i).getVelocity() > 1)
+       background(255);
+  }  
+  
   float timeBetween =  millis()-lastPlayed; //time between last time it was played, 
   //basically quantizing everything to a quarter second beat, since I only play every 1/4 second
   //if tempo is 120bpm, then it is playing every 16th note if there are new blobs.

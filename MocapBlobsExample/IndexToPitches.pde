@@ -9,21 +9,21 @@ class IndexToPitches
   
   IndexToPitches()
   {
-    hz.add(Frequency.ofPitch( "C4" ).asHz() );
-    hz.add(Frequency.ofPitch( "B3" ).asHz() );
-    hz.add(Frequency.ofPitch( "A3" ).asHz() );
-    hz.add(Frequency.ofPitch( "G3" ).asHz() );
-    hz.add(Frequency.ofPitch( "F3" ).asHz() );
-    hz.add(Frequency.ofPitch( "E3" ).asHz() );
-    hz.add(Frequency.ofPitch( "D3" ).asHz() );
-    hz.add(Frequency.ofPitch( "C3" ).asHz() );
-    hz.add(Frequency.ofPitch( "B2" ).asHz() );
-    hz.add(Frequency.ofPitch( "A2" ).asHz() );
-    hz.add(Frequency.ofPitch( "G2" ).asHz() );
-    hz.add(Frequency.ofPitch( "F2" ).asHz() );
-    hz.add(Frequency.ofPitch( "E2" ).asHz() );
-    hz.add(Frequency.ofPitch( "D2" ).asHz() );
-    hz.add(Frequency.ofPitch( "C2" ).asHz() );
+    hz.add(Frequency.ofPitch( "A4" ).asHz() ); //C4
+    hz.add(Frequency.ofPitch( "A5" ).asHz() ); //B3
+    hz.add(Frequency.ofPitch( "B4" ).asHz() ); //A3
+    hz.add(Frequency.ofPitch( "B5" ).asHz() ); //G3
+    hz.add(Frequency.ofPitch( "C4" ).asHz() );  //F3
+    hz.add(Frequency.ofPitch( "C5" ).asHz() ); //E3
+    hz.add(Frequency.ofPitch( "D4" ).asHz() ); //D3
+    hz.add(Frequency.ofPitch( "D5" ).asHz() ); //C3
+    hz.add(Frequency.ofPitch( "E4" ).asHz() );  //B2
+    hz.add(Frequency.ofPitch( "E5" ).asHz() );  //A2
+    hz.add(Frequency.ofPitch( "F4" ).asHz() );  //G2
+    hz.add(Frequency.ofPitch( "F5" ).asHz() );  //F2
+    hz.add(Frequency.ofPitch( "G4" ).asHz() );  //E2
+    hz.add(Frequency.ofPitch( "G5" ).asHz() ); //D2
+    hz.add(Frequency.ofPitch( "G2" ).asHz() );  //C2
   }
   
   float size()

@@ -36,7 +36,6 @@
 
 #include "Osc.h" //add to send OSC
 
-
 #include "CinderOpenCV.h"
 
 #include "Blob.h"
@@ -65,7 +64,6 @@ class BlobTrackingApp : public App {
 public:
     BlobTrackingApp();
     void setup() override;
-//    void mouseDown( MouseEvent event ) override;
     void keyDown( KeyEvent event ) override;
     
     void update() override;
@@ -179,6 +177,7 @@ void BlobTrackingApp::setup()
 
 
 
+//SENDS WHERE MOUSE IS (NOT USED FOR THIS PROGRAM)
 void BlobTrackingApp::sendOSC(std::string addr, float x, float y){
     osc:: Message msg;
     msg.setAddress(addr);
@@ -190,6 +189,8 @@ void BlobTrackingApp::sendOSC(std::string addr, float x, float y){
 }
 
 
+
+//SENDS IF MOUSE IS DOWN OR NOT(NOT USED FOR THIS PROGRAM)
 void BlobTrackingApp::sendOSC(std::string addr, float down){
     osc:: Message msg;
     msg.setAddress(addr);
@@ -200,6 +201,8 @@ void BlobTrackingApp::sendOSC(std::string addr, float down){
 }
 
 
+
+//SENDS BLOB INFO
 void BlobTrackingApp::sendOSC(std::string addr, float ind, float x, float y){
     osc:: Message msg;
     msg.setAddress(addr);
@@ -210,6 +213,8 @@ void BlobTrackingApp::sendOSC(std::string addr, float ind, float x, float y){
     
     mSender.send(msg);
 }
+
+
 
 void BlobTrackingApp::keyDown( KeyEvent event )
 {
@@ -229,6 +234,8 @@ void BlobTrackingApp::keyDown( KeyEvent event )
     }
 }
 
+
+
 //this function detects the blobs.
 void BlobTrackingApp::blobDetection(BackgroundSubtractionState useBackground = BackgroundSubtractionState::NONE)
 {
@@ -240,6 +247,8 @@ void BlobTrackingApp::blobDetection(BackgroundSubtractionState useBackground = B
     if(useBackground == BackgroundSubtractionState::OPENCV)
     {
         mBackgroundSubtract->apply(mCurFrame, mBackgroundSubtracted);
+        cv::GaussianBlur(mBackgroundSubtracted, mBackgroundSubtracted, cv::Size(21,21), 0);
+        cv::threshold(mBackgroundSubtracted, mBackgroundSubtracted, 25, 255, cv::THRESH_BINARY);
         frame = mBackgroundSubtracted;
     }
     else if( useBackground == BackgroundSubtractionState::SAVEDFRAME )
@@ -274,30 +283,32 @@ void BlobTrackingApp::blobDetection(BackgroundSubtractionState useBackground = B
     mBlobDetector->detect(frame, mKeyPoints);
 }
 
+
+
+//CONSTANTLY RUNNING AND UPDATING
 void BlobTrackingApp::update()
 {
     if(mCapture && mCapture->checkNewFrame()) //is there a new frame???? (& did camera get created?)
     {
         mSurface = mCapture->getSurface();
-        
-        if(! mTexture)
-            mTexture = gl::Texture::create(*mSurface);
-        else
-            mTexture->update(*mSurface);
     }
+    
     if(!mSurface) return; //we do nothing if there is no new frame
+    
     mCurFrame = toOcv(Channel(*mSurface));
-  
+    cv::flip(mCurFrame, mCurFrame, 1);
+    
+    mTexture = gl::Texture::create(fromOcv(mCurFrame)); //gl::Texture::create(*mSurface);
+    
     //update all our blob info
     blobDetection(mUseBackgroundSubtraction);
-    
     
     blobTracking();
     updateBlobList();
     
-    
     //SEND OSC HERE VVV
-    for(int i = 0 ; i < mBlobs.size() ; i++){
+    for(int i = 0 ; i < mBlobs.size() ; i++)
+    {
         sendOSC(BLOB_OSCADDRESS,(float)mBlobs[i].getBlobID(), (float)mBlobs[i].getCurrX(), (float)mBlobs[i].getCurrY());
     }
 }
@@ -332,6 +343,8 @@ void BlobTrackingApp::blobTracking()
 }
 
 
+
+
 //updating mBlobs<>
 void BlobTrackingApp::updateBlobList()
 {
@@ -355,6 +368,8 @@ void BlobTrackingApp::updateBlobList()
 }
 
 
+
+
 void BlobTrackingApp::createBlobs()
 {
     mBlobs.clear(); //create a new list of blobs each time
@@ -366,6 +381,9 @@ void BlobTrackingApp::createBlobs()
         newBlobID++;
     }
 }
+
+
+
 
 void BlobTrackingApp::draw()
 {
